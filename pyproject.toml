@@ -1,0 +1,18 @@
+[project]
+name = "silver-train"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "KagChi",email = "yonuxbot@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "innertube @ git+https://github.com/tombulled/innertube.git@main",
+    "google-api-python-client (>=2.169.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
