@@ -1,8 +1,11 @@
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
 import csv
 import html
 import argparse
 import os
+
+load_dotenv()
 
 def video_comments_flat(video_id, api_key):
     texts = []
