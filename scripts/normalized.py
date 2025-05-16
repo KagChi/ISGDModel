@@ -4,13 +4,6 @@ import unicodedata
 import os
 import glob
 
-# Keywords commonly found in online gambling spam
-GAMBLING_KEYWORDS = [
-    "pulauwin", "dora77", "daftar", "slot", "gacor", "dra77", "dora", "slot77", "pr0be855", "p r o b e t 8 5 5", "axl777", "hoki777",
-    "maxwin", "deposit", "wd", "rtp", "jackpot", "spin", "jp", "alexis17", "weton88", "p l u t o 8 8", "d77", "p u l a u w i n", "luna p l a y 88", "maxwin",
-    "a e r o 8 8", "aero 88", "ae r o 8 8", "ERO88", "cuan328", "g a c 000 r", "g4c0r", "alexa22", "weton88", "mona4d", "kusumat0t0", "squad777"
-]
-
 # Normalize text: remove accents, symbols, lowercase, etc.
 def normalize_text(text):
     text = unicodedata.normalize("NFKD", text)
@@ -19,23 +12,14 @@ def normalize_text(text):
     text = re.sub(r'[^a-z0-9\s]', '', text)
     return text.strip()
 
-# Check if any gambling keyword appears in the comment
-def is_gambling_comment(text):
-    for keyword in GAMBLING_KEYWORDS:
-        if keyword in text:
-            return 1
-    return 0
-
 # Load raw comments and save labeled data
 def auto_label(input_csv, output_csv):
     all_labeled = []
     with open(input_csv, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            text = row['text']
-            label = is_gambling_comment(normalize_text(text))
-            normalized_text = normalize_text(text)
-            all_labeled.append({'text': text, 'label': label})
+            text = normalize_text(row['text'])
+            all_labeled.append({'text': text})
 
     print(f"✅ Labeled comments from {input_csv}")
     return all_labeled
@@ -45,7 +29,7 @@ if __name__ == "__main__":
     input_files = glob.glob("csv/comments/*.csv")
 
     # Create the "csv/dataset" directory if it doesn't exist
-    output_dir = "csv/dataset"
+    output_dir = "csv/normalized"
     os.makedirs(output_dir, exist_ok=True)
 
     for input_file in input_files:

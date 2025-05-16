@@ -18,9 +18,12 @@ def load_csvs(files):
     return all_data
 
 # Load dataset
-filecsv = glob.glob('csv/dataset/*.csv')
-data_list = []
+paths = ['csv/dataset/*.csv', 'csv/normalized/*.csv']
+filecsv = []
+for path in paths:
+    filecsv.extend(glob.glob(path))
 
+data_list = []
 for file in filecsv:
     data = pd.read_csv(file, header=None, names=['text', 'label'])
     data = data[data['label'].astype(str).str.strip().isin(['0','1'])]
