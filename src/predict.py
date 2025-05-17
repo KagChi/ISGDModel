@@ -47,13 +47,18 @@ try:
     logger.info(f"Model moved to device: {device}")
 
     logger.info("Loading data from CSV...")
-    csv_files = glob.glob("csv/flagged/*.csv")
+    csv_files = glob.glob("csv/dataset/*.csv")
 
     if not csv_files:
-        raise FileNotFoundError("No CSV files found in the csv/flagged/ directory")
+        raise FileNotFoundError("No CSV files found in the csv/dataset/ directory")
 
     data = pd.concat([pd.read_csv(f) for f in csv_files], ignore_index=True)
     logger.info(f"Data loaded successfully with {len(data)} rows from {len(csv_files)} files.")
+
+    label_counts = data['label'].value_counts().to_dict()
+    judi_count = label_counts.get(1, 0)
+    bukan_judi_count = label_counts.get(0, 0)
+    logger.info(f"Label distribution - Judi: {judi_count}, Bukan Judi: {bukan_judi_count}")
 
     all_predictions = []
     all_labels = data['label'].tolist()
@@ -64,7 +69,7 @@ try:
     max_text_len = 80
 
     for index, row in data.iterrows():
-        text = row['text']
+        text = str(row['text']) if row['text'] is not None else ""
         label = row['label']
 
         inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=128)
@@ -98,6 +103,11 @@ try:
     output_path = "csv/output/prediction_results.csv"
     data.to_csv(output_path, index=False)
     logger.info(f"Prediction results saved to {output_path}")
+
+    misclassified_as_judi = data[(data['label'] == 0) & (data['prediction'] == 1)]
+    misclassified_output_path = "csv/output/misclassified_as_judi.csv"
+    misclassified_as_judi.to_csv(misclassified_output_path, index=False)
+    logger.info(f"Misclassified rows (label 0, prediksi 1) saved to {misclassified_output_path}")
 
     # Hitung akurasi
     correct = sum([1 for p, l in zip(all_predictions, all_labels) if p == l])

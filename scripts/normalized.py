@@ -19,7 +19,7 @@ def auto_label(input_csv, output_csv):
         reader = csv.DictReader(f)
         for row in reader:
             text = normalize_text(row['text'])
-            all_labeled.append({'text': text})
+            all_labeled.append({'text': text, 'label': row['label']})
 
     print(f"✅ Labeled comments from {input_csv}")
     return all_labeled

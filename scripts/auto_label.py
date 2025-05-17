@@ -3,6 +3,7 @@ import re
 import unicodedata
 import os
 import glob
+import emoji
 
 # Keywords commonly found in online gambling spam
 GAMBLING_KEYWORDS = [
@@ -10,7 +11,9 @@ GAMBLING_KEYWORDS = [
     "maxwin", "deposit", "wd", "rtp", "jackpot", "jp", "alexis17", "weton88", "p l u t o 8 8", "d77", "p u l a u w i n", "luna p l a y 88", "maxwin",
     "a e r o 8 8", "aero 88", "ae r o 8 8", "ERO88", "cuan328", "g a c 000 r", "g4c0r", "alexa22", "weton88", "mona4d", "kusumat0t0", "squad777", "aero88",
     "probt855", "sgi88", "pstoto99", "777", "pulau777", "ula777", "jepey", "berkah99", "alexis 17", "manjurbet", "k o i s l o t", "m i y a 88", "layla 88",
-    "dwadoa", "dwadora", "dewdr", "dwado", "ga ru da ho ki", "ero88", "thor311", "jepee", "doa77", "wedeey", "a e r o 88", "A E R O DELAPAN DELAPAN"
+    "dwadoa", "dwadora", "dewdr", "dwado", "ga ru da ho ki", "ero88", "thor311", "jepee", "doa77", "wedeey", "a e r o 88", "A E R O DELAPAN DELAPAN",
+    "lesti77", "jet88bet", "ayamwin", "zoom555", "ringbet88", "momo99 99", "lohanslt", "neng4d", "n e n g 4 d", "r a d a r 138", "poa88",
+    "a l e x i s 1 7", "y u k     6     9", "mgs88", "dewador", "dewadora"
 ]
 
 # Normalize text: remove accents, symbols, lowercase, etc.
@@ -20,6 +23,16 @@ def normalize_text(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s]', '', text)
     return text.strip()
+
+def clean_text(text):
+    text = re.sub(r'<a\s+href="[^"]*">.*?</a>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<.*?>', '', text)
+    text = re.sub(r'@{1,2}[^\s]+', '', text)
+    text = emoji.replace_emoji(text, replace='')
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = text.replace('"', '')
+
+    return text
 
 # Check if any gambling keyword appears in the comment
 def is_gambling_comment(text):
@@ -35,12 +48,13 @@ def auto_label(input_csv, output_csv):
         reader = csv.DictReader(f)
         for row in reader:
             text = row['text']
-            label = is_gambling_comment(normalize_text(text))
+            cleaned_text = clean_text(text)
+            label = is_gambling_comment(normalize_text(normalize_text(cleaned_text)))
 
-            # all_labeled.append({'text': text, 'label': label})
+            all_labeled.append({'text': cleaned_text, 'label': label})
 
-            if label == 1:
-                all_labeled.append({'text': text, 'label': label})
+            # if label == 1:
+            #     all_labeled.append({'text': text, 'label': label})
 
     print(f"✅ Labeled comments from {input_csv}")
     return all_labeled
@@ -50,7 +64,7 @@ if __name__ == "__main__":
     input_files = glob.glob("csv/comments/*.csv")
 
     # Create the "csv/dataset" directory if it doesn't exist
-    output_dir = "csv/flagged"
+    output_dir = "csv/dataset"
     os.makedirs(output_dir, exist_ok=True)
 
     for input_file in input_files:
