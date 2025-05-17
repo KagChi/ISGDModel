@@ -4,6 +4,7 @@ from transformers import AutoTokenizer
 import pandas as pd
 import logging
 import glob
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,6 +14,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Set True kalau mau lihat log tiap baris
 log_each_row = False
 
 try:
@@ -55,6 +57,9 @@ try:
 
     all_predictions = []
     all_labels = data['label'].tolist()
+    prediction_labels = []
+    prediction_texts = []
+    correctness_flags = []
 
     max_text_len = 80
 
@@ -75,13 +80,26 @@ try:
         label_text = 'judi' if label == 1 else 'bukan judi'
         correctness = 'Betul' if prediction == label else 'Salah prediksi'
 
+        prediction_labels.append(prediction)
+        prediction_texts.append(pred_text)
+        correctness_flags.append(correctness)
+
         display_text = (text[:max_text_len] + '...') if len(text) > max_text_len else text
 
         if log_each_row:
             logger.info(f"[Row {index}] Text: \"{display_text}\" | Prediksi: {prediction} ({pred_text}), Label: {label} ({label_text}), Hasil: {correctness}")
             logger.info(f"+========================+")
 
-    # Calculate Accuracy
+    data['prediction'] = prediction_labels
+    data['prediction_text'] = prediction_texts
+    data['correctness'] = correctness_flags
+
+    os.makedirs("csv/output", exist_ok=True)
+    output_path = "csv/output/prediction_results.csv"
+    data.to_csv(output_path, index=False)
+    logger.info(f"Prediction results saved to {output_path}")
+
+    # Hitung akurasi
     correct = sum([1 for p, l in zip(all_predictions, all_labels) if p == l])
     total = len(all_labels)
     accuracy = correct / total if total > 0 else 0
