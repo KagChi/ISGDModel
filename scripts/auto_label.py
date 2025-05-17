@@ -6,15 +6,39 @@ import glob
 import emoji
 
 # Keywords commonly found in online gambling spam
-GAMBLING_KEYWORDS = [
-    "pulauwin", "dora77", "daftar", "dra77", "dora", "slot77", "pr0be855", "p r o b e t 8 5 5", "axl777", "hoki777",
-    "maxwin", "deposit", "wd", "rtp", "jackpot", "jp", "alexis17", "weton88", "p l u t o 8 8", "d77", "p u l a u w i n", "luna p l a y 88", "maxwin",
-    "a e r o 8 8", "aero 88", "ae r o 8 8", "ERO88", "cuan328", "g a c 000 r", "g4c0r", "alexa22", "weton88", "mona4d", "kusumat0t0", "squad777", "aero88",
-    "probt855", "sgi88", "pstoto99", "777", "pulau777", "ula777", "jepey", "berkah99", "alexis 17", "manjurbet", "k o i s l o t", "m i y a 88", "layla 88",
-    "dwadoa", "dwadora", "dewdr", "dwado", "ga ru da ho ki", "ero88", "thor311", "jepee", "doa77", "wedeey", "a e r o 88", "A E R O DELAPAN DELAPAN",
-    "lesti77", "jet88bet", "ayamwin", "zoom555", "ringbet88", "momo99 99", "lohanslt", "neng4d", "n e n g 4 d", "r a d a r 138", "poa88",
-    "a l e x i s 1 7", "y u k     6     9", "mgs88", "dewador", "dewadora"
+GAMBLING_PATTERNS = [
+    r"p\s*u\s*l\s*a\s*u\s*w\s*i\s*n", 
+    r"d\s*o\s*r\s*a\s*7\s*7", 
+    r"alexis\s*1\s*7", 
+    r"a\s*l\s*e\s*x\s*i\s*s\s*1\s*7", 
+    r"weton\s*88", 
+    r"p\s*l\s*u\s*t\s*o\s*8\s*8", 
+    r"slot\s*77", 
+    r"probe\s*855", 
+    r"p\s*r\s*o\s*b\s*e\s*t\s*8\s*5\s*5", 
+    r"a\s*e\s*r\s*o\s*8\s*8", 
+    r"aero\s*88", 
+    r"ae\s*r\s*o\s*8\s*8", 
+    r"ero\s*88", 
+    r"g\s*a\s*c\s*0\s*0\s*0\s*r", 
+    r"g\s*4\s*c\s*0\s*r", 
+    r"koislot", 
+    r"m\s*i\s*y\s*a\s*8\s*8", 
+    r"layla\s*88", 
+    r"dwadoa", r"dwadora", r"dewadora", r"dewador", 
+    r"y\s*u\s*k\s*6\s*9",
+    r"maxwin", r"deposit", r"wd", r"rtp", r"jackpot", r"\bjp\b",
+    r"777", r"jet88", r"zoom555", r"ringbet88", r"thor311", r"cuan328", r"mona4d", r"ayamwin",
+    r"poker", r"slot", r"casino", r"judi", r"judi online", r"judi slot",
+    r"poa\s*88", r"pr0be\s*8\s*5\s*5", r"sijago\s*88", r"k\s*o\s*i\s*s\s*l\s*o\s*t",
+    r"asiagenting", r"sgi88"
 ]
+
+def contains_emoji(text):
+    return bool(emoji.replace_emoji(text, replace='').strip() != text.strip())
+
+def contains_gambling_keyword(text):
+    return contains_emoji(text) and "17" in text;
 
 # Normalize text: remove accents, symbols, lowercase, etc.
 def normalize_text(text):
@@ -24,21 +48,30 @@ def normalize_text(text):
     text = re.sub(r'[^a-z0-9\s]', '', text)
     return text.strip()
 
-def clean_text(text):
+def clean_text(text, remove_emoji=True):
     text = re.sub(r'<a\s+href="[^"]*">.*?</a>', '', text, flags=re.IGNORECASE)
     text = re.sub(r'<.*?>', '', text)
     text = re.sub(r'@{1,2}[^\s]+', '', text)
-    text = emoji.replace_emoji(text, replace='')
+
+    if remove_emoji and not contains_gambling_keyword(text):
+        text = emoji.replace_emoji(text, replace='')
     text = re.sub(r'\s+', ' ', text).strip()
     text = text.replace('"', '')
 
     return text
 
+GAMBLING_REGEXES = [re.compile(pattern, re.IGNORECASE) for pattern in GAMBLING_PATTERNS]
+
 # Check if any gambling keyword appears in the comment
 def is_gambling_comment(text):
-    for keyword in GAMBLING_KEYWORDS:
-        if keyword in text:
+    if contains_gambling_keyword(text):
+        return 1
+    
+    text_norm = normalize_text(text)
+    for regex in GAMBLING_REGEXES:
+        if regex.search(text_norm):
             return 1
+
     return 0
 
 # Load raw comments and save labeled data
@@ -49,7 +82,7 @@ def auto_label(input_csv, output_csv):
         for row in reader:
             text = row['text']
             cleaned_text = clean_text(text)
-            label = is_gambling_comment(normalize_text(normalize_text(cleaned_text)))
+            label = is_gambling_comment(clean_text(text, False))
 
             all_labeled.append({'text': cleaned_text, 'label': label})
 
