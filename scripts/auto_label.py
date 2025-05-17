@@ -6,9 +6,11 @@ import glob
 
 # Keywords commonly found in online gambling spam
 GAMBLING_KEYWORDS = [
-    "pulauwin", "dora77", "daftar", "slot", "gacor", "dra77", "dora", "slot77", "pr0be855", "p r o b e t 8 5 5", "axl777", "hoki777",
-    "maxwin", "deposit", "wd", "rtp", "jackpot", "spin", "jp", "alexis17", "weton88", "p l u t o 8 8", "d77", "p u l a u w i n", "luna p l a y 88", "maxwin",
-    "a e r o 8 8", "aero 88", "ae r o 8 8", "ERO88", "cuan328", "g a c 000 r", "g4c0r", "alexa22", "weton88", "mona4d", "kusumat0t0", "squad777"
+    "pulauwin", "dora77", "daftar", "dra77", "dora", "slot77", "pr0be855", "p r o b e t 8 5 5", "axl777", "hoki777",
+    "maxwin", "deposit", "wd", "rtp", "jackpot", "jp", "alexis17", "weton88", "p l u t o 8 8", "d77", "p u l a u w i n", "luna p l a y 88", "maxwin",
+    "a e r o 8 8", "aero 88", "ae r o 8 8", "ERO88", "cuan328", "g a c 000 r", "g4c0r", "alexa22", "weton88", "mona4d", "kusumat0t0", "squad777", "aero88",
+    "probt855", "sgi88", "pstoto99", "777", "pulau777", "ula777", "jepey", "berkah99", "alexis 17", "manjurbet", "k o i s l o t", "m i y a 88", "layla 88",
+    "dwadoa", "dwadora", "dewdr", "dwado", "ga ru da ho ki", "ero88", "thor311", "jepee", "doa77", "wedeey"
 ]
 
 # Normalize text: remove accents, symbols, lowercase, etc.
@@ -34,7 +36,7 @@ def auto_label(input_csv, output_csv):
         for row in reader:
             text = row['text']
             label = is_gambling_comment(normalize_text(text))
-            normalized_text = normalize_text(text)
+
             all_labeled.append({'text': text, 'label': label})
 
     print(f"✅ Labeled comments from {input_csv}")

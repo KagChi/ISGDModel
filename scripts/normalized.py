@@ -26,7 +26,7 @@ def auto_label(input_csv, output_csv):
 
 if __name__ == "__main__":
     # Use glob to find all CSV files in the "csv/comments" directory
-    input_files = glob.glob("csv/comments/*.csv")
+    input_files = glob.glob("csv/dataset/*.csv")
 
     # Create the "csv/dataset" directory if it doesn't exist
     output_dir = "csv/normalized"
