@@ -40,8 +40,17 @@ train_texts, val_texts, train_labels, val_labels = train_test_split(
 
 # Load tokenizer and IndoBERT-base-p1 model
 model_name = "indobenchmark/indobert-base-p1"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+model_path = "./tmp/models/v2"  # Path to the local model
+
+try:
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModelForSequenceClassification.from_pretrained(model_path)
+    print("Loaded tokenizer and model from local path:", model_path)
+except Exception as e:
+    print(f"Failed to load local model from {model_path}. Loading from Hugging Face Model Hub...")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    print("Loaded tokenizer and model from Hugging Face Model Hub:", model_name)
 
 # Tokenize dataset
 def tokenize_function(examples):
@@ -98,3 +107,6 @@ tokenizer.save_pretrained("tmp/models/v2")
 # Save model to .pkl format
 with open("models/v2/model.pkl", "wb") as f:
     pickle.dump(model, f)
+
+with open("models/v2/tokenizer.pkl", "wb") as f:
+    pickle.dump(tokenizer, f)
