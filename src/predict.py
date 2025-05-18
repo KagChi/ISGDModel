@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import pickle
 from transformers import AutoTokenizer
 import pandas as pd
@@ -47,10 +48,10 @@ try:
     logger.info(f"Model moved to device: {device}")
 
     logger.info("Loading data from CSV...")
-    csv_files = glob.glob("csv/dataset/*.csv")
+    csv_files = glob.glob("csv/predict/*.csv")
 
     if not csv_files:
-        raise FileNotFoundError("No CSV files found in the csv/dataset/ directory")
+        raise FileNotFoundError("No CSV files found in the csv/predict/ directory")
 
     data = pd.concat([pd.read_csv(f) for f in csv_files], ignore_index=True)
     logger.info(f"Data loaded successfully with {len(data)} rows from {len(csv_files)} files.")
@@ -60,11 +61,17 @@ try:
     bukan_judi_count = label_counts.get(0, 0)
     logger.info(f"Label distribution - Judi: {judi_count}, Bukan Judi: {bukan_judi_count}")
 
+    # Probability thresholds for class 1 (gambling) classification
+    threshold_low = 0.4
+    threshold_high = 0.7
+
+    positive_rows = []  # Predicted as not gambling
+    negative_rows = []  # Predicted as gambling
+    unknown_rows = []   # Prediction uncertain
+
     all_predictions = []
+    all_probabilities = []
     all_labels = data['label'].tolist()
-    prediction_labels = []
-    prediction_texts = []
-    correctness_flags = []
 
     max_text_len = 80
 
@@ -77,17 +84,38 @@ try:
 
         with torch.no_grad():
             outputs = model(**inputs)
-            prediction = torch.argmax(outputs.logits, dim=-1).item()
+            probs = F.softmax(outputs.logits, dim=-1)
+            prob_0 = probs[0][0].item()
+            prob_1 = probs[0][1].item()
+
+        # Determine prediction based on probability thresholds
+        if prob_1 >= threshold_high:
+            prediction = 1  # gambling
+        elif prob_1 <= threshold_low:
+            prediction = 0  # not gambling
+        else:
+            prediction = -1  # unknown / uncertain
+
+        if prediction == 1:
+            negative_rows.append(row.to_dict())
+        elif prediction == 0:
+            positive_rows.append(row.to_dict())
+        else:
+            unknown_rows.append(row.to_dict())
 
         all_predictions.append(prediction)
+        all_probabilities.append(prob_1)
 
-        pred_text = 'judi' if prediction == 1 else 'bukan judi'
+        pred_text = (
+            f'judi ({prob_1:.2f})' if prediction == 1 else
+            f'bukan judi ({prob_0:.2f})' if prediction == 0 else
+            f'unknown ({prob_1:.2f})'
+        )
         label_text = 'judi' if label == 1 else 'bukan judi'
-        correctness = 'Betul' if prediction == label else 'Salah prediksi'
-
-        prediction_labels.append(prediction)
-        prediction_texts.append(pred_text)
-        correctness_flags.append(correctness)
+        if prediction == -1:
+            correctness = 'Ragu-ragu'
+        else:
+            correctness = 'Betul' if prediction == label else 'Salah prediksi'
 
         display_text = (text[:max_text_len] + '...') if len(text) > max_text_len else text
 
@@ -95,25 +123,26 @@ try:
             logger.info(f"[Row {index}] Text: \"{display_text}\" | Prediksi: {prediction} ({pred_text}), Label: {label} ({label_text}), Hasil: {correctness}")
             logger.info(f"+========================+")
 
-    data['prediction'] = prediction_labels
-    data['prediction_text'] = prediction_texts
-    data['correctness'] = correctness_flags
-
     os.makedirs("csv/output", exist_ok=True)
-    output_path = "csv/output/prediction_results.csv"
-    data.to_csv(output_path, index=False)
-    logger.info(f"Prediction results saved to {output_path}")
 
-    misclassified_as_judi = data[(data['label'] == 0) & (data['prediction'] == 1)]
-    misclassified_output_path = "csv/output/misclassified_as_judi.csv"
-    misclassified_as_judi.to_csv(misclassified_output_path, index=False)
-    logger.info(f"Misclassified rows (label 0, prediksi 1) saved to {misclassified_output_path}")
+    # This marked as new negative because its label is 0 but predicted as 1
+    filtered_negative_rows = [row for row in negative_rows if row['label'] == 0]
+    pd.DataFrame(filtered_negative_rows).to_csv("csv/output/new_negative.csv", index=False)
 
-    # Hitung akurasi
-    correct = sum([1 for p, l in zip(all_predictions, all_labels) if p == l])
-    total = len(all_labels)
+    pd.DataFrame(positive_rows).to_csv("csv/output/positive.csv", index=False)
+    pd.DataFrame(negative_rows).to_csv("csv/output/negative.csv", index=False)
+    pd.DataFrame(unknown_rows).to_csv("csv/output/unknown.csv", index=False)
+
+    logger.info(f"Samples predicted as non gambling saved to csv/output/positive.csv (Count: {len(positive_rows)})")
+    logger.info(f"Samples predicted as gambling saved to csv/output/negative.csv (Count: {len(negative_rows)})")
+    logger.info(f"Samples predicted as unknown saved to csv/output/unknown.csv (Count: {len(unknown_rows)})")
+
+    # Calculate accuracy, excluding unknown predictions (-1)
+    valid_preds_labels = [(p, l) for p, l in zip(all_predictions, all_labels) if p != -1]
+    correct = sum([1 for p, l in valid_preds_labels if p == l])
+    total = len(valid_preds_labels)
     accuracy = correct / total if total > 0 else 0
-    logger.info(f"Accuracy: {accuracy:.4f} ({correct}/{total} correct predictions)")
+    logger.info(f"Accuracy (excluding unknown): {accuracy:.4f} ({correct}/{total} correct predictions)")
 
 except Exception as e:
     logger.error(f"An error occurred: {e}", exc_info=True)

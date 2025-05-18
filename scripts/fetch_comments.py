@@ -62,7 +62,7 @@ def main():
     Main function to fetch comments from a YouTube video and save them to a CSV file.
     """
     parser = argparse.ArgumentParser(description="Fetch comments from a YouTube video.")
-    parser.add_argument("video_id", help="The ID of the YouTube video.")
+    parser.add_argument("--video_id", required=True, help="The ID of the YouTube video.")
     # parser.add_argument("--output_file", default="data/comments.csv", help="The output CSV file (default: data/comments.csv).")
 
     args = parser.parse_args()
